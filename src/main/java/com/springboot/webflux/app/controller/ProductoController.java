@@ -1,5 +1,10 @@
 package com.springboot.webflux.app.controller;
 
+import java.net.URI;
+import java.util.Date;
+
+import javax.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +17,9 @@ import com.springboot.webflux.app.models.service.ProductoService;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 
 
@@ -38,6 +46,18 @@ public Mono<ResponseEntity<Producto>> ver(
 	.body(p))
 	.defaultIfEmpty(ResponseEntity.notFound().build());
 	
+}
+
+@PostMapping
+public Mono<ResponseEntity<Producto>> crear(@RequestBody Producto producto) {
+	if(producto.getCreateAt()==null){
+		producto.setCreateAt(new Date());
+	}
+
+	return service.save(producto).map(p->ResponseEntity
+	.created(URI.create("/api/productos/".concat(p.getId())))
+	.body(p) );
+
 }
 
 }
