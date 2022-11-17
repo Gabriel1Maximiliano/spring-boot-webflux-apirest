@@ -1,18 +1,23 @@
 package com.springboot.webflux.app.controller;
 
+import java.io.File;
 import java.lang.annotation.Retention;
 import java.net.URI;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.ser.std.StdKeySerializers.Default;
@@ -34,6 +39,21 @@ public class ProductoController {
 @Autowired
 	private ProductoService service;
 
+@Value("${config.uploads.path}")
+private String path;
+
+@PostMapping("/upload/{id}")
+public Mono<ResponseEntity<Producto>> upload(@PathVariable String id, @RequestPart FilePart file){
+
+	return service.findById(id).flatMap(p->{
+		p.setFoto(UUID.randomUUID().toString()+"-"+file.filename().replace(" ","")
+		
+		);  
+		return file.transferTo(new File(path + p.getFoto())).then(service.save(p));
+	}).map(p-> ResponseEntity.ok(p))
+	.defaultIfEmpty(ResponseEntity.notFound().build());
+
+}
 	@GetMapping
 	public Mono<ResponseEntity<Flux<Producto>>>lista(){
 		
