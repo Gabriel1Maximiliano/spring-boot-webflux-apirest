@@ -1,17 +1,21 @@
 package com.springboot.webflux.app.controller;
 
+import java.lang.annotation.Retention;
 import java.net.URI;
 import java.util.Date;
 
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ser.std.StdKeySerializers.Default;
 import com.springboot.webflux.app.models.document.Producto;
 import com.springboot.webflux.app.models.service.ProductoService;
 
@@ -71,8 +75,14 @@ public Mono<ResponseEntity<Producto>> editar(@RequestBody Producto producto, @Pa
  }).map(p-> ResponseEntity.created(URI.create("/api/productos/".concat(p.getId())))
  .body(p))
  .defaultIfEmpty(ResponseEntity.notFound().build());
-} 
+}
+@DeleteMapping("/{id}")
+public Mono<ResponseEntity<Void>> eliminar(@PathVariable String id){
 
+	return service.findById(id).flatMap(p->{
+		return service.delete(p).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
+	}).defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
+} 
 }
 
 
