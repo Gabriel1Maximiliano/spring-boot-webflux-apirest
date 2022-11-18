@@ -1,13 +1,15 @@
 package com.springboot.webflux.app.handler;
 
-import java.net.http.HttpRequest.BodyPublishers;
+import java.net.URI;
 
+import java.util.Date;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import static org.springframework.web.reactive.function.BodyInserters.*;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import com.springboot.webflux.app.models.document.Producto;
 import com.springboot.webflux.app.models.service.ProductoService;
 import com.springboot.webflux.app.models.service.Produto;
 
@@ -27,11 +29,24 @@ private ProductoService service;
     public Mono<ServerResponse> ver(ServerRequest request){
              String id= request.pathVariable("id");
 
-             Mono test = service.findById(id);
-             System.out.println(test);
              return service.findById(id).flatMap(p-> 
              ServerResponse
              .ok().body(fromObject(p))
              .switchIfEmpty(ServerResponse.notFound().build()));
+    }
+
+    public Mono<ServerResponse> crear(ServerRequest  request){
+
+        Mono<Producto> producto = request.bodyToMono(Producto.class);
+
+         return producto.flatMap(p-> {
+
+            if(p.getCreateAt() == null){
+                p.setCreateAt(new Date());
+            }
+            return service.save(p);
+         }).flatMap(p-> ServerResponse
+         .created(URI.create("/api/v2/productos/".concat(p.getId())))
+         .body(fromObject(p)));
     }
 }
