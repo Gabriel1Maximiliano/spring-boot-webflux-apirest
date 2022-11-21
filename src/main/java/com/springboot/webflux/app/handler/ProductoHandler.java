@@ -1,14 +1,20 @@
 package com.springboot.webflux.app.handler;
 
+import java.io.File;
 import java.net.URI;
 
 import java.util.Date;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Component;
 import static org.springframework.web.reactive.function.BodyInserters.*;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import com.mongodb.client.model.ReturnDocument;
 import com.springboot.webflux.app.models.document.Producto;
 import com.springboot.webflux.app.models.service.ProductoService;
 import com.springboot.webflux.app.models.service.Produto;
@@ -20,6 +26,23 @@ public class ProductoHandler {
 
     @Autowired
 private ProductoService service;
+
+@Value("${config.uploads.path}")
+private String path;
+
+public Mono<ServerResponse> upload(ServerRequest request){
+    String id= request.pathVariable("id");
+
+    return request.multipartData().map(multipart->multipart.toSingleValueMap().get("file"))
+    .cast(FilePart.class)
+    .flatMap(file-> service.findById(id)
+              .flatMap(p-> {
+                p.setFoto(UUID.randomUUID().toString()+"-"+file.filename().replace(" ",""));
+                return file.transferTo(new File(path+p.getFoto())).then(service.save(p));
+              })).flatMap(p-> ServerResponse.created(URI.create("/api/v2/productos/".concat(p.getId())))
+              .body(fromObject(p)))
+              .switchIfEmpty(ServerResponse.notFound().build());
+}
     
     public Mono<ServerResponse> listar(ServerRequest serverRequest){
         return ServerResponse.ok()
